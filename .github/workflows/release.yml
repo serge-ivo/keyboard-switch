@@ -1,0 +1,23 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app bundle
+        run: make app
+
+      - name: Zip app bundle
+        run: zip -r KeyboardMonitor.zip KeyboardMonitor.app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: KeyboardMonitor.zip
