@@ -1,0 +1,54 @@
+{
+  "name": "@serge-ivo/keyboard-switch",
+  "version": "0.1.0",
+  "description": "npm wrapper for the native KeyboardMonitor macOS menu bar app",
+  "bin": {
+    "keyboard-switch": "bin/keyboard-switch.js"
+  },
+  "files": [
+    "Package.swift",
+    "Sources",
+    "Tests",
+    "scripts",
+    "Info.plist",
+    "Makefile",
+    "README.md",
+    "com.serge.keyboardmonitor.plist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "make build",
+    "test": "make test",
+    "app": "make app",
+    "install:app": "make install",
+    "uninstall:app": "make uninstall",
+    "prepare:publish:snapshot": "node scripts/prepare-npm-publish.js snapshot",
+    "prepare:publish:release": "node scripts/prepare-npm-publish.js release",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "macos",
+    "menubar",
+    "bluetooth",
+    "keyboard",
+    "swift"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serge-ivo/keyboard-switch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/serge-ivo/keyboard-switch/issues"
+  },
+  "homepage": "https://github.com/serge-ivo/keyboard-switch#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "UNLICENSED"
+}
