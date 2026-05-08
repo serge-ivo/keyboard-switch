@@ -22,7 +22,6 @@
     "app": "make app",
     "install:app": "make install",
     "uninstall:app": "make uninstall",
-    "prepare:publish:snapshot": "node scripts/prepare-npm-publish.js snapshot",
     "prepare:publish:release": "node scripts/prepare-npm-publish.js release",
     "prepublishOnly": "npm test"
   },

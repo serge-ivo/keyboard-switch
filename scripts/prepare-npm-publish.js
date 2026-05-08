@@ -6,7 +6,7 @@ const { execFileSync } = require("node:child_process");
 
 const packagePath = path.resolve(__dirname, "..", "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
-const mode = process.argv[2] ?? "snapshot";
+const mode = process.argv[2] ?? "release";
 
 const npmUsername = process.env.NPM_PACKAGE_SCOPE_USER || execFileSync("npm", ["whoami"], {
   encoding: "utf8",
@@ -16,16 +16,7 @@ const packageName = process.env.NPM_PACKAGE_NAME || `@${npmUsername}/keyboard-sw
 
 packageJson.name = packageName;
 
-if (mode === "snapshot") {
-  const runNumber = process.env.GITHUB_RUN_NUMBER || "0";
-  const sha = (process.env.GITHUB_SHA || "dev").slice(0, 7);
-  packageJson.version = `${packageJson.version}-canary.${runNumber}.${sha}`;
-  packageJson.publishConfig = {
-    ...(packageJson.publishConfig || {}),
-    access: "public",
-    tag: "canary",
-  };
-} else if (mode === "release") {
+if (mode === "release") {
   packageJson.publishConfig = {
     ...(packageJson.publishConfig || {}),
     access: "public",

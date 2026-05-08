@@ -12,6 +12,10 @@ let package = Package(
             targets: ["KeyboardSwitchCore"]
         ),
         .executable(
+            name: "PromptWhisper",
+            targets: ["PromptWhisper"]
+        ),
+        .executable(
             name: "KeyboardMonitor",
             targets: ["KeyboardMonitor"]
         )
@@ -19,6 +23,10 @@ let package = Package(
     targets: [
         .target(
             name: "KeyboardSwitchCore"
+        ),
+        .executableTarget(
+            name: "PromptWhisper",
+            dependencies: ["KeyboardSwitchCore"]
         ),
         .executableTarget(
             name: "KeyboardMonitor",

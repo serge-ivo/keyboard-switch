@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>PromptWhisper</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.serge.promptwhisper</string>
+    <key>CFBundleExecutable</key>
+    <string>PromptWhisper</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>PromptWhisper records your voice so it can transcribe prompts.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>PromptWhisper transcribes your voice and returns it to the original text box.</string>
+</dict>
+</plist>

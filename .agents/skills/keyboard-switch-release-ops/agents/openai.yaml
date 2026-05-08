@@ -1,0 +1,4 @@
+version: 1
+display_name: Keyboard Switch Release Ops
+short_description: Release, publish, and status-dot guardrails for the keyboard-switch repo.
+default_prompt: Use this skill when working on keyboard-switch status bar behavior, packaging, tests, or GitHub Actions release automation.

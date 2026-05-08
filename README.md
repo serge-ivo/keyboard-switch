@@ -84,10 +84,9 @@ The npm package is macOS-only and delegates to `make build`, `make test`, `make 
 
 ## CI publishing
 
-GitHub Actions now supports two publish modes:
+GitHub Actions publishes on tags to keep releases simple and intentional:
 
-- every push to `main` runs tests and publishes a unique npm `canary` build
-- every pushed tag matching `v*` runs tests, publishes the stable npm package, builds the app bundle, and creates a GitHub release zip
+- every pushed tag matching `v*` runs tests, publishes the npm package, builds the app bundle, and creates a GitHub release zip
 
 Required GitHub secret:
 
@@ -99,6 +98,13 @@ Optional GitHub variables or secrets:
 - `NPM_PACKAGE_SCOPE_USER`: override for the npm username used to derive `@username/keyboard-switch`
 
 If `NPM_PACKAGE_NAME` is not set, the workflow runs `npm whoami` with `NPM_TOKEN` and publishes as `@<npm-username>/keyboard-switch`.
+
+Release flow:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
 
 ## Start at login
 
@@ -134,3 +140,41 @@ The app uses native `IOBluetooth` connect/disconnect notifications for the targe
 - The app is easiest to keep visible when the status item stays fixed-width and always renders a single dot glyph.
 - The LaunchAgent must open the app bundle with `/usr/bin/open -a /Applications/KeyboardMonitor.app`. Pointing the agent at the inner executable caused unreliable launches.
 - `swift test` now guards the presentation and LaunchAgent assumptions that regressed during debugging.
+- npm publishing should stay tag-driven. Publishing on every push adds version churn and registry noise for a native app wrapper with a small release cadence.
+
+## PromptWhisper prototype
+
+This repo also includes a separate menu bar utility called `PromptWhisper`.
+
+Goal:
+
+- capture the exact text box that had focus when recording starts
+- allow you to switch to other windows while speaking
+- on stop, return to the original text box, paste the transcript there, and press Return
+
+Safety rule:
+
+- if the original text box cannot be re-focused exactly, `PromptWhisper` aborts instead of pasting into the wrong place
+
+Build and install:
+
+```bash
+make prompt-install
+```
+
+Permissions required on first use:
+
+- Accessibility
+- Microphone
+- Speech Recognition
+
+Hotkey:
+
+- `F12` toggles recording
+
+Indicator and sounds:
+
+- white dot when idle
+- red dot while recording
+- one beep on start
+- two quick beeps on successful stop
