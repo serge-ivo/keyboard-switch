@@ -1,6 +1,6 @@
-KeyboardMonitor
-KeyboardMonitor.app
-PromptWhisper.app
+/KeyboardMonitor
+/KeyboardMonitor.app
+/PromptWhisper.app
 .DS_Store
 .build
 dist
