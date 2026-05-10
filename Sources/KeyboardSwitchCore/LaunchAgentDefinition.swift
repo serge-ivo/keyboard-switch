@@ -14,7 +14,7 @@ public struct LaunchAgentDefinition: Equatable, Sendable {
     }
 
     public static let keyboardMonitor = LaunchAgentDefinition(
-        label: "com.serge.keyboardmonitor",
-        appPath: "/Applications/KeyboardMonitor.app"
+        label: DistributionLayout.bundleIdentifier,
+        appPath: DistributionLayout.appInstallPath
     )
 }

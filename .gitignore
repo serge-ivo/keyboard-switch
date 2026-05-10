@@ -3,5 +3,6 @@ KeyboardMonitor.app
 PromptWhisper.app
 .DS_Store
 .build
+dist
 node_modules
 package-lock.json

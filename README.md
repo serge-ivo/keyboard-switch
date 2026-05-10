@@ -9,6 +9,21 @@ If you share a single Bluetooth keyboard across multiple Macs (e.g. a Logitech K
 
 The dot updates as soon as macOS reports the keyboard connected or disconnected.
 
+## Installer
+
+`KeyboardMonitor` can now be shipped as a native macOS installer package instead of a loose `.app` bundle:
+
+```bash
+make pkg
+```
+
+That produces `dist/KeyboardMonitor-<version>.pkg`. Double-clicking the package installs:
+
+- `KeyboardMonitor.app` into `/Applications`
+- `com.serge.keyboardmonitor.plist` into `/Library/LaunchAgents`
+
+The installer also bootstraps the LaunchAgent for the current logged-in user so the menu bar app starts without a separate manual step.
+
 ## Requirements
 
 - macOS 12+
@@ -45,7 +60,7 @@ That's it. The app is now running and will start automatically on login.
 
 ### From a release
 
-Download `KeyboardMonitor.zip` from the [Releases](https://github.com/serge-ivo/keyboard-switch/releases) page, unzip, and move `KeyboardMonitor.app` to `/Applications`. Double-click to launch. Note: release builds won't auto-start on login — you'll need to add the app manually in **System Settings → General → Login Items**.
+Download `KeyboardMonitor-<version>.pkg` from the [Releases](https://github.com/serge-ivo/keyboard-switch/releases) page and double-click it. The package installs the app into `/Applications` and registers the LaunchAgent for login startup.
 
 ## Configuration
 
@@ -60,9 +75,10 @@ make install
 
 Unit tests cover the fragile parts that broke during the status bar iterations:
 
-- the status item should render as an attributed dot, not a plain text title tinted with `contentTintColor`
+- the status item should render as an explicit colored indicator, not a plain text title tinted with `contentTintColor`
 - the dot presentation should stay fixed-width and preserve the green/white connected state semantics
 - the LaunchAgent should start the `.app` through `/usr/bin/open -a /Applications/KeyboardMonitor.app`, not the inner Mach-O directly
+- the installer contract should keep the package identifier, install paths, and postinstall LaunchAgent bootstrap stable
 
 Run them with:
 
@@ -86,7 +102,40 @@ The npm package is macOS-only and delegates to `make build`, `make test`, `make 
 
 GitHub Actions publishes on tags to keep releases simple and intentional:
 
-- every pushed tag matching `v*` runs tests, publishes the npm package, builds the app bundle, and creates a GitHub release zip
+- every pushed tag matching `v*` runs tests, publishes the npm package, builds the app bundle, builds the installer package, and creates a GitHub release with both assets
+
+## Signing and notarization
+
+The repo now supports signed app and installer builds, but proper public distribution requires Developer ID certificates. The current machine only has Apple Development identities, which are useful for local development but not for shipping to other users through Gatekeeper.
+
+For a proper signed distribution build, you need:
+
+- `Developer ID Application` certificate for the `.app`
+- `Developer ID Installer` certificate for the `.pkg`
+- a notary profile configured with `xcrun notarytool store-credentials`
+
+Build commands:
+
+```bash
+APP_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+PKG_SIGN_IDENTITY="Developer ID Installer: Your Name (TEAMID)" \
+make pkg
+```
+
+To notarize and staple the installer after signing:
+
+```bash
+APP_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+PKG_SIGN_IDENTITY="Developer ID Installer: Your Name (TEAMID)" \
+NOTARY_PROFILE="keyboard-switch-notary" \
+make notarize-pkg
+```
+
+To inspect which signing identities are available locally:
+
+```bash
+make signing-status
+```
 
 Required GitHub secret:
 
@@ -136,7 +185,7 @@ The app uses native `IOBluetooth` connect/disconnect notifications for the targe
 
 ## Learnings
 
-- `contentTintColor` is for images; it is not a reliable way to color a plain text menu bar title. The visible dot now goes through an attributed title with explicit colors.
+- `contentTintColor` is not enough on its own for a reliable colored menu bar dot. The visible indicator now uses explicit color glyphs.
 - The app is easiest to keep visible when the status item stays fixed-width and always renders a single dot glyph.
 - The LaunchAgent must open the app bundle with `/usr/bin/open -a /Applications/KeyboardMonitor.app`. Pointing the agent at the inner executable caused unreliable launches.
 - `swift test` now guards the presentation and LaunchAgent assumptions that regressed during debugging.

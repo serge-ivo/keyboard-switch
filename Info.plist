@@ -8,7 +8,15 @@
     <string>com.serge.keyboardmonitor</string>
     <key>CFBundleExecutable</key>
     <string>KeyboardMonitor</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>0.1.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Keyboard Switch checks your keyboard connection status so it can update the menu bar dot.</string>
 </dict>
 </plist>

@@ -39,10 +39,15 @@ jobs:
       - name: Build app bundle
         run: make app
 
+      - name: Build installer package
+        run: make pkg
+
       - name: Zip app bundle
         run: zip -r KeyboardMonitor.zip KeyboardMonitor.app
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: KeyboardMonitor.zip
+          files: |
+            KeyboardMonitor.zip
+            dist/*.pkg

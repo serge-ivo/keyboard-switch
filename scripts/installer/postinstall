@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+TARGET_VOLUME="${3:-/}"
+PLIST_PATH="/Library/LaunchAgents/com.serge.keyboardmonitor.plist"
+
+if [ "$TARGET_VOLUME" != "/" ]; then
+    exit 0
+fi
+
+TARGET_USER="$(stat -f %Su /dev/console)"
+if [ "$TARGET_USER" = "root" ]; then
+    exit 0
+fi
+
+TARGET_UID="$(id -u "$TARGET_USER")"
+
+launchctl bootout "gui/${TARGET_UID}" "$PLIST_PATH" >/dev/null 2>&1 || true
+launchctl bootstrap "gui/${TARGET_UID}" "$PLIST_PATH" >/dev/null 2>&1 || true
+launchctl kickstart -k "gui/${TARGET_UID}/com.serge.keyboardmonitor" >/dev/null 2>&1 || true
+
+exit 0
