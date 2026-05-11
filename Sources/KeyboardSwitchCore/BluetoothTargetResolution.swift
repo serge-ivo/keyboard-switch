@@ -13,6 +13,24 @@ public struct BluetoothDeviceIdentity: Equatable, Sendable {
 }
 
 public enum BluetoothTargetResolution {
+    public static func resolve(
+        configuredName: String,
+        resolvedAddress: String?,
+        in devices: [BluetoothDeviceIdentity]
+    ) -> BluetoothDeviceIdentity? {
+        if let resolvedAddress {
+            return devices.first {
+                matchesTarget(
+                    configuredName: configuredName,
+                    resolvedAddress: resolvedAddress,
+                    candidate: $0
+                )
+            }
+        }
+
+        return bestMatch(named: configuredName, in: devices)
+    }
+
     public static func bestMatch(
         named configuredName: String,
         in devices: [BluetoothDeviceIdentity]

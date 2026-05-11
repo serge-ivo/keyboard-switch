@@ -54,4 +54,19 @@ final class BluetoothTargetResolutionTests: XCTestCase {
             )
         )
     }
+
+    func testResolvePrefersAddressMatch() {
+        let devices = [
+            BluetoothDeviceIdentity(name: "Renamed Keyboard", nameOrAddress: "Renamed Keyboard", address: "D6-3D-1F-F6-35-35"),
+            BluetoothDeviceIdentity(name: "MK550KB", nameOrAddress: "MK550KB", address: "00-00-00-00-00-00")
+        ]
+
+        let match = BluetoothTargetResolution.resolve(
+            configuredName: "MK550KB",
+            resolvedAddress: "d6:3d:1f:f6:35:35",
+            in: devices
+        )
+
+        XCTAssertEqual(match?.name, "Renamed Keyboard")
+    }
 }

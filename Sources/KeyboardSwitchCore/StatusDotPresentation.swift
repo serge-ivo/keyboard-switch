@@ -2,7 +2,7 @@ import Foundation
 
 public enum StatusDotPalette: String, Equatable, Sendable {
     case connectedGreen
-    case disconnectedWhite
+    case disconnectedGray
 }
 
 public enum StatusDotRenderer: String, Equatable, Sendable {
@@ -45,7 +45,7 @@ public enum StatusDotPresenter {
             symbol: "●",
             fontSize: 17,
             strokeWidth: -3,
-            palette: connected ? .connectedGreen : .disconnectedWhite,
+            palette: connected ? .connectedGreen : .disconnectedGray,
             toolTip: connected ? "\(deviceName) connected" : "\(deviceName) not connected"
         )
     }

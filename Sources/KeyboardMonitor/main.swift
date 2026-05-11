@@ -3,40 +3,28 @@ import KeyboardSwitchCore
 import OSLog
 
 @MainActor
-final class KeyboardMonitor: NSObject, NSApplicationDelegate {
+final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
     private static let refreshInterval: TimeInterval = 0.5
 
     private var statusItem: NSStatusItem!
+    private var settingsWindowController: KeyboardSettingsWindowController?
     private var refreshTimer: Timer?
     private var isRefreshing = false
     private var isConnected = false
-    private let deviceName = "MK550KB"
-    private let diagnostics = KeyboardMonitorDiagnostics()
+    private var latestKnownDevices: [BluetoothDeviceIdentity] = []
+    private var lastResolvedDevice: BluetoothDeviceIdentity?
+    private let configuration = KeyboardSwitchConfiguration(userDefaults: .standard)
+    private let diagnostics = KeyboardSwitchDiagnostics()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         diagnostics.info("Application launching")
-        let presentation = StatusDotPresenter.presentation(deviceName: deviceName, connected: false)
+        let presentation = StatusDotPresenter.presentation(deviceName: monitoredDeviceDisplayName, connected: false)
         statusItem = NSStatusBar.system.statusItem(withLength: presentation.width)
         diagnostics.info("Status item created with width \(presentation.width)")
-
-        let menu = NSMenu()
-        menu.addItem(
-            NSMenuItem(
-                title: "Open Log File",
-                action: #selector(openLogFile),
-                keyEquivalent: "l"
-            )
-        )
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(
-            NSMenuItem(
-                title: "Quit",
-                action: #selector(NSApplication.terminate(_:)),
-                keyEquivalent: "q"
-            )
-        )
-        statusItem.menu = menu
-        diagnostics.info("Status menu configured")
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(openSettingsWindow)
+        statusItem.button?.sendAction(on: [.leftMouseUp])
+        diagnostics.info("Status item click handler configured")
 
         refreshTimer = Timer.scheduledTimer(
             withTimeInterval: Self.refreshInterval,
@@ -61,8 +49,42 @@ final class KeyboardMonitor: NSObject, NSApplicationDelegate {
         diagnostics.revealLogFile()
     }
 
+    @objc private func openSettingsWindow() {
+        refreshConnectionState()
+
+        if settingsWindowController == nil {
+            settingsWindowController = KeyboardSettingsWindowController(
+                configuration: configuration,
+                diagnostics: diagnostics,
+                onSave: { [weak self] in
+                    self?.refreshConnectionState()
+                    self?.updateStatus()
+                },
+                onOpenLog: { [weak self] in
+                    self?.openLogFile()
+                },
+                snapshotProvider: { [weak self] in
+                    self?.settingsSnapshot ?? KeyboardSettingsSnapshot(
+                        devices: [],
+                        monitoredName: "MK550KB",
+                        monitoredAddress: nil,
+                        statusText: "No keyboard selected"
+                    )
+                }
+            )
+        }
+
+        let snapshot = settingsSnapshot
+        settingsWindowController?.present(
+            devices: snapshot.devices,
+            monitoredName: snapshot.monitoredName,
+            monitoredAddress: snapshot.monitoredAddress,
+            statusText: snapshot.statusText
+        )
+    }
+
     private func updateStatus() {
-        applyStatusDot(StatusDotPresenter.presentation(deviceName: deviceName, connected: isConnected))
+        applyStatusDot(StatusDotPresenter.presentation(deviceName: monitoredDeviceDisplayName, connected: isConnected))
     }
 
     private func applyStatusDot(_ presentation: StatusDotPresentation) {
@@ -82,8 +104,14 @@ final class KeyboardMonitor: NSObject, NSApplicationDelegate {
         guard !isRefreshing else { return }
         isRefreshing = true
 
-        DispatchQueue.global(qos: .utility).async { [weak self, deviceName, diagnostics] in
-            let result = BluetoothStatusProbe.probe(deviceName: deviceName)
+        let configuredName = configuration.monitoredKeyboardName
+        let configuredAddress = configuration.monitoredKeyboardAddress
+
+        DispatchQueue.global(qos: .utility).async { [weak self, configuredName, configuredAddress, diagnostics] in
+            let result = BluetoothStatusProbe.probe(
+                configuredName: configuredName,
+                configuredAddress: configuredAddress
+            )
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isRefreshing = false
@@ -93,20 +121,42 @@ final class KeyboardMonitor: NSObject, NSApplicationDelegate {
                 if self.isConnected != result.connected {
                     diagnostics.info("Connection state changed to \(result.connected ? "connected" : "disconnected")")
                 }
+                self.latestKnownDevices = result.devices
+                self.lastResolvedDevice = result.resolvedDevice
+                self.configuration.updateResolvedAddressIfNeeded(from: result.resolvedDevice)
                 self.isConnected = result.connected
                 self.updateStatus()
             }
         }
+    }
+
+    private var monitoredDeviceDisplayName: String {
+        lastResolvedDevice?.name ?? lastResolvedDevice?.nameOrAddress ?? configuration.monitoredKeyboardName
+    }
+
+    private var settingsSnapshot: KeyboardSettingsSnapshot {
+        let statusText = isConnected
+            ? "\(monitoredDeviceDisplayName) is connected"
+            : "\(monitoredDeviceDisplayName) is not connected"
+
+        return KeyboardSettingsSnapshot(
+            devices: latestKnownDevices,
+            monitoredName: configuration.monitoredKeyboardName,
+            monitoredAddress: configuration.monitoredKeyboardAddress,
+            statusText: statusText
+        )
     }
 }
 
 struct BluetoothProbeResult {
     let connected: Bool
     let errorDescription: String?
+    let devices: [BluetoothDeviceIdentity]
+    let resolvedDevice: BluetoothDeviceIdentity?
 }
 
 enum BluetoothStatusProbe {
-    static func probe(deviceName: String) -> BluetoothProbeResult {
+    static func probe(configuredName: String, configuredAddress: String?) -> BluetoothProbeResult {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
         task.arguments = ["SPBluetoothDataType"]
@@ -118,7 +168,12 @@ enum BluetoothStatusProbe {
         do {
             try task.run()
         } catch {
-            return BluetoothProbeResult(connected: false, errorDescription: "Unable to run system_profiler: \(error.localizedDescription)")
+            return BluetoothProbeResult(
+                connected: false,
+                errorDescription: "Unable to run system_profiler: \(error.localizedDescription)",
+                devices: [],
+                resolvedDevice: nil
+            )
         }
 
         let data = stdout.fileHandleForReading.readDataToEndOfFile()
@@ -130,20 +185,35 @@ enum BluetoothStatusProbe {
         else {
             return BluetoothProbeResult(
                 connected: false,
-                errorDescription: "system_profiler exited with status \(task.terminationStatus)"
+                errorDescription: "system_profiler exited with status \(task.terminationStatus)",
+                devices: [],
+                resolvedDevice: nil
             )
         }
 
+        let devices = BluetoothDeviceCatalog.keyboardDevices(in: output)
+        let resolvedDevice = BluetoothTargetResolution.resolve(
+            configuredName: configuredName,
+            resolvedAddress: configuredAddress,
+            in: devices
+        )
+
         return BluetoothProbeResult(
-            connected: BluetoothConnectionSnapshot.isDeviceConnected(named: deviceName, in: output),
-            errorDescription: nil
+            connected: BluetoothConnectionSnapshot.isDeviceConnected(
+                configuredName: configuredName,
+                resolvedAddress: configuredAddress,
+                in: output
+            ),
+            errorDescription: nil,
+            devices: devices,
+            resolvedDevice: resolvedDevice
         )
     }
 }
 
-final class KeyboardMonitorDiagnostics: @unchecked Sendable {
-    private let logger = Logger(subsystem: "com.serge.keyboardmonitor", category: "menu-bar")
-    private let queue = DispatchQueue(label: "com.serge.keyboardmonitor.diagnostics")
+final class KeyboardSwitchDiagnostics: @unchecked Sendable {
+    private let logger = Logger(subsystem: "com.serge.keyboardswitch", category: "menu-bar")
+    private let queue = DispatchQueue(label: "com.serge.keyboardswitch.diagnostics")
     private let fileURL: URL
     private let dateFormatter = ISO8601DateFormatter()
 
@@ -151,7 +221,7 @@ final class KeyboardMonitorDiagnostics: @unchecked Sendable {
         let logsDirectory = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/KeyboardSwitch", isDirectory: true)
         try? FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
-        fileURL = logsDirectory.appendingPathComponent("KeyboardMonitor.log")
+        fileURL = logsDirectory.appendingPathComponent(DistributionLayout.diagnosticsLogFileName)
     }
 
     func info(_ message: String) {
@@ -191,7 +261,7 @@ final class KeyboardMonitorDiagnostics: @unchecked Sendable {
 }
 
 let app = NSApplication.shared
-let delegate = KeyboardMonitor()
+let delegate = KeyboardSwitchApp()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
 app.run()

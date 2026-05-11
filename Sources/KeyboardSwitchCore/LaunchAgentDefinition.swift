@@ -13,7 +13,7 @@ public struct LaunchAgentDefinition: Equatable, Sendable {
         ["/usr/bin/open", "-a", appPath]
     }
 
-    public static let keyboardMonitor = LaunchAgentDefinition(
+    public static let keyboardSwitch = LaunchAgentDefinition(
         label: DistributionLayout.bundleIdentifier,
         appPath: DistributionLayout.appInstallPath
     )

@@ -1,7 +1,7 @@
 {
   "name": "@serge-ivo/keyboard-switch",
-  "version": "0.1.2",
-  "description": "npm wrapper for the native KeyboardMonitor macOS menu bar app",
+  "version": "0.1.3",
+  "description": "npm wrapper for the native Keyboard Switch macOS menu bar app",
   "bin": {
     "keyboard-switch": "bin/keyboard-switch.js"
   },
@@ -13,7 +13,7 @@
     "Info.plist",
     "Makefile",
     "README.md",
-    "com.serge.keyboardmonitor.plist",
+    "com.serge.keyboardswitch.plist",
     "bin"
   ],
   "scripts": {
@@ -22,6 +22,7 @@
     "app": "make app",
     "install:app": "make install",
     "uninstall:app": "make uninstall",
+    "postinstall": "node scripts/postinstall.js",
     "prepare:publish:release": "node scripts/prepare-npm-publish.js release",
     "prepublishOnly": "npm test"
   },

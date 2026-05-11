@@ -13,11 +13,11 @@ final class StatusDotAttributedTitleBuilderTests: XCTestCase {
         XCTAssertEqual(color, NSColor(srgbRed: 0.20, green: 0.82, blue: 0.33, alpha: 1.0))
     }
 
-    func testDisconnectedDotUsesWhiteAttributedTitle() {
+    func testDisconnectedDotUsesGrayAttributedTitle() {
         let presentation = StatusDotPresenter.presentation(deviceName: "MK550KB", connected: false)
         let title = StatusDotAttributedTitleBuilder.build(presentation)
 
         let color = title.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
-        XCTAssertEqual(color, NSColor.white)
+        XCTAssertEqual(color, NSColor(srgbRed: 0.72, green: 0.72, blue: 0.75, alpha: 1.0))
     }
 }

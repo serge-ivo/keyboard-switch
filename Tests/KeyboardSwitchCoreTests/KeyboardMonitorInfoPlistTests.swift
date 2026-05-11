@@ -19,7 +19,8 @@ final class KeyboardMonitorInfoPlistTests: XCTestCase {
             plist["CFBundleIdentifier"] as? String,
             DistributionLayout.bundleIdentifier
         )
-        XCTAssertEqual(plist["CFBundleExecutable"] as? String, DistributionLayout.appName)
+        XCTAssertEqual(plist["CFBundleName"] as? String, DistributionLayout.displayName)
+        XCTAssertEqual(plist["CFBundleExecutable"] as? String, DistributionLayout.executableName)
         XCTAssertEqual(plist["CFBundlePackageType"] as? String, "APPL")
         XCTAssertFalse((plist["CFBundleShortVersionString"] as? String ?? "").isEmpty)
         XCTAssertFalse((plist["CFBundleVersion"] as? String ?? "").isEmpty)

@@ -16,8 +16,8 @@ let package = Package(
             targets: ["PromptWhisper"]
         ),
         .executable(
-            name: "KeyboardMonitor",
-            targets: ["KeyboardMonitor"]
+            name: "KeyboardSwitch",
+            targets: ["KeyboardSwitch"]
         )
     ],
     targets: [
@@ -29,8 +29,9 @@ let package = Package(
             dependencies: ["KeyboardSwitchCore"]
         ),
         .executableTarget(
-            name: "KeyboardMonitor",
-            dependencies: ["KeyboardSwitchCore"]
+            name: "KeyboardSwitch",
+            dependencies: ["KeyboardSwitchCore"],
+            path: "Sources/KeyboardMonitor"
         ),
         .testTarget(
             name: "KeyboardSwitchCoreTests",

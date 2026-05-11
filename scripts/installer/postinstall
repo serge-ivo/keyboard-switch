@@ -2,7 +2,10 @@
 set -eu
 
 TARGET_VOLUME="${3:-/}"
-PLIST_PATH="/Library/LaunchAgents/com.serge.keyboardmonitor.plist"
+PLIST_PATH="/Library/LaunchAgents/com.serge.keyboardswitch.plist"
+OLD_PLIST_PATH="/Library/LaunchAgents/com.serge.keyboardmonitor.plist"
+OLD_USER_PLIST_NAME="com.serge.keyboardmonitor.plist"
+OLD_APP_PATH="/Applications/KeyboardMonitor.app"
 
 if [ "$TARGET_VOLUME" != "/" ]; then
     exit 0
@@ -14,9 +17,15 @@ if [ "$TARGET_USER" = "root" ]; then
 fi
 
 TARGET_UID="$(id -u "$TARGET_USER")"
+USER_LAUNCH_AGENTS_DIR="/Users/${TARGET_USER}/Library/LaunchAgents"
+
+launchctl bootout "gui/${TARGET_UID}" "$OLD_PLIST_PATH" >/dev/null 2>&1 || true
+launchctl bootout "gui/${TARGET_UID}" "${USER_LAUNCH_AGENTS_DIR}/${OLD_USER_PLIST_NAME}" >/dev/null 2>&1 || true
+rm -f "$OLD_PLIST_PATH" "${USER_LAUNCH_AGENTS_DIR}/${OLD_USER_PLIST_NAME}"
+rm -rf "$OLD_APP_PATH"
 
 launchctl bootout "gui/${TARGET_UID}" "$PLIST_PATH" >/dev/null 2>&1 || true
 launchctl bootstrap "gui/${TARGET_UID}" "$PLIST_PATH" >/dev/null 2>&1 || true
-launchctl kickstart -k "gui/${TARGET_UID}/com.serge.keyboardmonitor" >/dev/null 2>&1 || true
+launchctl kickstart -k "gui/${TARGET_UID}/com.serge.keyboardswitch" >/dev/null 2>&1 || true
 
 exit 0

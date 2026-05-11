@@ -14,11 +14,11 @@ final class StatusDotPresentationTests: XCTestCase {
         XCTAssertEqual(presentation.toolTip, "MK550KB connected")
     }
 
-    func testDisconnectedPresentationUsesWhiteDotTooltip() {
+    func testDisconnectedPresentationUsesGrayDotTooltip() {
         let presentation = StatusDotPresenter.presentation(deviceName: "MK550KB", connected: false)
 
         XCTAssertEqual(presentation.renderer, .attributedTitle)
-        XCTAssertEqual(presentation.palette, .disconnectedWhite)
+        XCTAssertEqual(presentation.palette, .disconnectedGray)
         XCTAssertEqual(presentation.toolTip, "MK550KB not connected")
     }
 }

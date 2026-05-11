@@ -15,6 +15,6 @@ final class InstallerScriptTests: XCTestCase {
         XCTAssertTrue(script.contains(DistributionLayout.systemLaunchAgentPath))
         XCTAssertTrue(script.contains("launchctl bootstrap"))
         XCTAssertTrue(script.contains("launchctl kickstart -k"))
-        XCTAssertTrue(script.contains(LaunchAgentDefinition.keyboardMonitor.label))
+        XCTAssertTrue(script.contains(LaunchAgentDefinition.keyboardSwitch.label))
     }
 }

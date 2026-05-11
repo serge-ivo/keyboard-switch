@@ -26,7 +26,7 @@ description: Use when working in the keyboard-switch repo on menu bar visibility
 - Native install flow: `Makefile`
 - npm wrapper: `package.json`, `bin/keyboard-switch.js`
 - GitHub Actions release flow: `.github/workflows/publish.yml`
-- LaunchAgent plist: `com.serge.keyboardmonitor.plist`
+- LaunchAgent plist: `com.serge.keyboardswitch.plist`
 
 ## Non-negotiable behavior
 
@@ -34,14 +34,14 @@ description: Use when working in the keyboard-switch repo on menu bar visibility
 - Do not rely on `contentTintColor` to color plain text titles.
 - The disconnected state is white; connected is green.
 - The status item stays fixed-width so it remains visually stable.
-- The LaunchAgent must open `/Applications/KeyboardMonitor.app` through `/usr/bin/open -a`, not the inner Mach-O path.
+- The LaunchAgent must open `/Applications/Keyboard Switch.app` through `/usr/bin/open -a`, not the inner Mach-O path.
 
 ## Validation steps
 
 1. Run `make test`.
 2. If app behavior changed, run `make clean install`.
-3. Verify the process if needed with `pgrep -fl KeyboardMonitor`.
-4. Verify the LaunchAgent if needed with `launchctl list | rg "com\\.serge\\.keyboardmonitor"`.
+3. Verify the process if needed with `pgrep -fl KeyboardSwitch`.
+4. Verify the LaunchAgent if needed with `launchctl list | rg "com\\.serge\\.keyboardswitch"`.
 
 ## Release workflow
 
@@ -52,8 +52,8 @@ description: Use when working in the keyboard-switch repo on menu bar visibility
    - run `make test`
    - prepare the npm package name from `NPM_PACKAGE_NAME` or `npm whoami`
    - publish to npm using `NPM_TOKEN`
-   - build `KeyboardMonitor.app`
-   - attach `KeyboardMonitor.zip` to the GitHub release
+   - build `Keyboard Switch.app`
+   - attach `KeyboardSwitch.zip` to the GitHub release
 
 ## GitHub configuration
 
@@ -70,7 +70,7 @@ If `NPM_PACKAGE_NAME` is unset, publishing defaults to `@<npm-username>/keyboard
   - prefer the attributed-title path in `Sources/KeyboardMonitor/main.swift`
 - App launches but no menu bar item:
   - verify the app process is actually running
-  - verify the LaunchAgent still uses `/usr/bin/open -a /Applications/KeyboardMonitor.app`
+  - verify the LaunchAgent still uses `/usr/bin/open -a /Applications/Keyboard Switch.app`
 - npm publish `404`:
   - the token account likely does not own the package scope
   - set `NPM_PACKAGE_NAME` explicitly or use the correct npm account token

@@ -5,22 +5,22 @@ A tiny macOS menu bar utility that shows whether your Bluetooth keyboard is curr
 If you share a single Bluetooth keyboard across multiple Macs (e.g. a Logitech K380 or similar multi-device keyboard), it can be hard to tell which machine it's currently talking to. Keyboard Switch puts a colored dot in your menu bar:
 
 - **Green** — keyboard is connected to this Mac
-- **White** — keyboard is connected elsewhere (or off)
+- **Gray** — keyboard is connected elsewhere (or off)
 
 The dot updates as soon as macOS reports the keyboard connected or disconnected.
 
 ## Installer
 
-`KeyboardMonitor` can now be shipped as a native macOS installer package instead of a loose `.app` bundle:
+`Keyboard Switch` can now be shipped as a native macOS installer package instead of a loose `.app` bundle:
 
 ```bash
 make pkg
 ```
 
-That produces `dist/KeyboardMonitor-<version>.pkg`. Double-clicking the package installs:
+That produces `dist/KeyboardSwitch-<version>.pkg`. Double-clicking the package installs:
 
-- `KeyboardMonitor.app` into `/Applications`
-- `com.serge.keyboardmonitor.plist` into `/Library/LaunchAgents`
+- `Keyboard Switch.app` into `/Applications`
+- `com.serge.keyboardswitch.plist` into `/Library/LaunchAgents`
 
 The installer also bootstraps the LaunchAgent for the current logged-in user so the menu bar app starts without a separate manual step.
 
@@ -43,16 +43,13 @@ The installer also bootstraps the LaunchAgent for the current logged-in user so 
    system_profiler SPBluetoothDataType | grep -B1 "Minor Type: Keyboard"
    ```
 
-3. Edit the device name in `Sources/KeyboardMonitor/main.swift` to match your keyboard:
-   ```swift
-   let deviceName = "MK550KB"  // change to your keyboard's Bluetooth name
-   ```
-
-4. Run tests, then build, install, and enable auto-start:
+3. Run tests, then build, install, and enable auto-start:
    ```bash
    make test
    make install
    ```
+
+4. Click the menu bar dot to open settings, then choose the Bluetooth keyboard to monitor.
 
 That's it. The app is now running and will start automatically on login.
 
@@ -60,16 +57,15 @@ That's it. The app is now running and will start automatically on login.
 
 ### From a release
 
-Download `KeyboardMonitor-<version>.pkg` from the [Releases](https://github.com/serge-ivo/keyboard-switch/releases) page and double-click it. The package installs the app into `/Applications` and registers the LaunchAgent for login startup.
+Download `KeyboardSwitch-<version>.pkg` from the [Releases](https://github.com/serge-ivo/keyboard-switch/releases) page and double-click it. The package installs the app into `/Applications` and registers the LaunchAgent for login startup.
 
 ## Configuration
 
-To change the monitored keyboard later, edit the `deviceName` variable in `Sources/KeyboardMonitor/main.swift` and rebuild:
+Click the menu bar indicator to open the settings window. From there you can:
 
-```bash
-make test
-make install
-```
+- choose from detected Bluetooth keyboards
+- type a keyboard name manually
+- save the selection without rebuilding the app
 
 ## Testing
 
@@ -77,7 +73,7 @@ Unit tests cover the fragile parts that broke during the status bar iterations:
 
 - the status item should render as an explicit colored indicator, not a plain text title tinted with `contentTintColor`
 - the dot presentation should stay fixed-width and preserve the green/white connected state semantics
-- the LaunchAgent should start the `.app` through `/usr/bin/open -a /Applications/KeyboardMonitor.app`, not the inner Mach-O directly
+- the LaunchAgent should start the `.app` through `/usr/bin/open -a /Applications/Keyboard Switch.app`, not the inner Mach-O directly
 - the installer contract should keep the package identifier, install paths, and postinstall LaunchAgent bootstrap stable
 
 Run them with:
@@ -95,6 +91,14 @@ npm install
 npm test
 npx @serge-ivo/keyboard-switch install
 ```
+
+To install the app directly through npm:
+
+```bash
+npm install -g @serge-ivo/keyboard-switch
+```
+
+That now runs the native install flow automatically on macOS. If you want to skip the automatic app install during package installation, set `KEYBOARD_SWITCH_SKIP_INSTALL=1`.
 
 The npm package is macOS-only and delegates to `make build`, `make test`, `make install`, and `make uninstall`.
 
@@ -163,10 +167,10 @@ To manage it manually:
 
 ```bash
 # Stop auto-starting
-launchctl unload ~/Library/LaunchAgents/com.serge.keyboardmonitor.plist
+launchctl unload ~/Library/LaunchAgents/com.serge.keyboardswitch.plist
 
 # Re-enable auto-starting
-launchctl load ~/Library/LaunchAgents/com.serge.keyboardmonitor.plist
+launchctl load ~/Library/LaunchAgents/com.serge.keyboardswitch.plist
 ```
 
 ## Menu bar on all displays
@@ -187,7 +191,7 @@ The app uses native `IOBluetooth` connect/disconnect notifications for the targe
 
 - `contentTintColor` is not enough on its own for a reliable colored menu bar dot. The visible indicator now uses explicit color glyphs.
 - The app is easiest to keep visible when the status item stays fixed-width and always renders a single dot glyph.
-- The LaunchAgent must open the app bundle with `/usr/bin/open -a /Applications/KeyboardMonitor.app`. Pointing the agent at the inner executable caused unreliable launches.
+- The LaunchAgent must open the app bundle with `/usr/bin/open -a /Applications/Keyboard Switch.app`. Pointing the agent at the inner executable caused unreliable launches.
 - `swift test` now guards the presentation and LaunchAgent assumptions that regressed during debugging.
 - npm publishing should stay tag-driven. Publishing on every push adds version churn and registry noise for a native app wrapper with a small release cadence.
 

@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.serge.keyboardmonitor</string>
+    <string>com.serge.keyboardswitch</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/open</string>
         <string>-a</string>
-        <string>/Applications/KeyboardMonitor.app</string>
+        <string>/Applications/Keyboard Switch.app</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

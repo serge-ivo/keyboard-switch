@@ -6,8 +6,8 @@ public enum StatusDotAttributedTitleBuilder {
         switch presentation.palette {
         case .connectedGreen:
             color = NSColor(srgbRed: 0.20, green: 0.82, blue: 0.33, alpha: 1.0)
-        case .disconnectedWhite:
-            color = .white
+        case .disconnectedGray:
+            color = NSColor(srgbRed: 0.72, green: 0.72, blue: 0.75, alpha: 1.0)
         }
 
         return NSAttributedString(

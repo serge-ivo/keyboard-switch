@@ -4,10 +4,10 @@ import XCTest
 
 final class LaunchAgentDefinitionTests: XCTestCase {
     func testDefaultLaunchAgentUsesOpenAppFlow() {
-        XCTAssertEqual(LaunchAgentDefinition.keyboardMonitor.label, "com.serge.keyboardmonitor")
+        XCTAssertEqual(LaunchAgentDefinition.keyboardSwitch.label, "com.serge.keyboardswitch")
         XCTAssertEqual(
-            LaunchAgentDefinition.keyboardMonitor.programArguments,
-            ["/usr/bin/open", "-a", "/Applications/KeyboardMonitor.app"]
+            LaunchAgentDefinition.keyboardSwitch.programArguments,
+            ["/usr/bin/open", "-a", "/Applications/Keyboard Switch.app"]
         )
     }
 
@@ -16,17 +16,17 @@ final class LaunchAgentDefinitionTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "com.serge.keyboardmonitor.plist")
+            .appending(path: "com.serge.keyboardswitch.plist")
 
         let data = try Data(contentsOf: plistURL)
         let plist = try XCTUnwrap(
             PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
         )
 
-        XCTAssertEqual(plist["Label"] as? String, LaunchAgentDefinition.keyboardMonitor.label)
+        XCTAssertEqual(plist["Label"] as? String, LaunchAgentDefinition.keyboardSwitch.label)
         XCTAssertEqual(
             plist["ProgramArguments"] as? [String],
-            LaunchAgentDefinition.keyboardMonitor.programArguments
+            LaunchAgentDefinition.keyboardSwitch.programArguments
         )
     }
 }
