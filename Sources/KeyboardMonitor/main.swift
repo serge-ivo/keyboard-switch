@@ -22,8 +22,8 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: presentation.width)
         diagnostics.info("Status item created with width \(presentation.width)")
         statusItem.button?.target = self
-        statusItem.button?.action = #selector(openSettingsWindow)
-        statusItem.button?.sendAction(on: [.leftMouseUp])
+        statusItem.button?.action = #selector(statusItemClicked)
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         diagnostics.info("Status item click handler configured")
 
         presenceWatcher = HIDPresenceWatcher { [weak self] in
@@ -43,6 +43,44 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
 
     @objc private func openLogFile() {
         diagnostics.revealLogFile()
+    }
+
+    @objc private func statusItemClicked() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+        } else {
+            openSettingsWindow()
+        }
+    }
+
+    private func showContextMenu() {
+        let menu = NSMenu()
+        let mark = menu.addItem(
+            withTitle: "Mark manual switch",
+            action: #selector(markManualSwitch),
+            keyEquivalent: ""
+        )
+        mark.target = self
+        menu.addItem(.separator())
+        let log = menu.addItem(withTitle: "Open log", action: #selector(openLogFile), keyEquivalent: "")
+        log.target = self
+
+        // Attaching the menu makes the next click open it, so trigger that
+        // click ourselves and detach again to keep left-click opening settings.
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    /// Records that this disconnect was deliberate. Without it the log cannot
+    /// tell a switch to the other machine from a link failure, and the
+    /// 30-second heuristic we used instead misclassifies both directions.
+    @objc private func markManualSwitch() {
+        let snapshot = DiagnosticContext.snapshot(
+            connected: isConnected,
+            otherBluetoothDevices: []
+        )
+        diagnostics.info("MANUAL SWITCH marked by user \(snapshot.logLine)")
     }
 
     @objc private func openSettingsWindow() {
@@ -135,6 +173,13 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
                 }
                 if self.isConnected != result.connected {
                     diagnostics.info("Connection state changed to \(result.connected ? "connected" : "disconnected")")
+                    let others = result.connectedDeviceNames
+                        .subtracting([self.configuration.monitoredKeyboardName])
+                    let snapshot = DiagnosticContext.snapshot(
+                        connected: result.connected,
+                        otherBluetoothDevices: Array(others)
+                    )
+                    diagnostics.info("CONTEXT \(snapshot.logLine)")
                 }
                 self.latestKnownDevices = result.devices
                 self.lastResolvedDevice = result.resolvedDevice
@@ -172,6 +217,9 @@ struct BluetoothProbeResult {
     let errorDescription: String?
     let devices: [BluetoothDeviceIdentity]
     let resolvedDevice: BluetoothDeviceIdentity?
+    /// Every device the controller currently holds a link to. A keyboard shares
+    /// the controller's airtime with these, so they are contention context.
+    let connectedDeviceNames: Set<String>
 }
 
 enum BluetoothStatusProbe {
@@ -196,7 +244,8 @@ enum BluetoothStatusProbe {
                 connected: false,
                 errorDescription: "Unable to run system_profiler: \(error.localizedDescription)",
                 devices: [],
-                resolvedDevice: nil
+                resolvedDevice: nil,
+                connectedDeviceNames: []
             )
         }
 
@@ -221,7 +270,8 @@ enum BluetoothStatusProbe {
                 connected: false,
                 errorDescription: "system_profiler exited with status \(task.terminationStatus)",
                 devices: [],
-                resolvedDevice: nil
+                resolvedDevice: nil,
+                connectedDeviceNames: []
             )
         }
 
@@ -240,7 +290,8 @@ enum BluetoothStatusProbe {
             ),
             errorDescription: nil,
             devices: devices,
-            resolvedDevice: resolvedDevice
+            resolvedDevice: resolvedDevice,
+            connectedDeviceNames: BluetoothConnectionSnapshot.connectedDeviceNames(in: output)
         )
     }
 }
