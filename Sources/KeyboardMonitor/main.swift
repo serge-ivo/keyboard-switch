@@ -12,6 +12,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
     private var needsAnotherRefresh = false
     private var isConnected = false
     private var latestKnownDevices: [BluetoothDeviceIdentity] = []
+    private var latestConnectedDeviceNames: Set<String> = []
     private var lastResolvedDevice: BluetoothDeviceIdentity?
     private let configuration = KeyboardSwitchConfiguration(userDefaults: .standard)
     private let diagnostics = KeyboardSwitchDiagnostics()
@@ -32,7 +33,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
             }
         }
         diagnostics.info("HID presence watcher registered")
-        refreshConnectionState()
+        updateConnectionFromRegistry()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -141,10 +142,29 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
     private func scheduleRefresh() {
         pendingRefreshWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.refreshConnectionState()
+            self?.updateConnectionFromRegistry()
         }
         pendingRefreshWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
+    }
+
+    /// Updates the dot from the HID registry alone. No subprocess, no
+    /// Bluetooth query — safe to run at the exact moment the keyboard is
+    /// reconnecting.
+    private func updateConnectionFromRegistry() {
+        let connected = HIDPresenceWatcher.isPresent(productName: configuration.monitoredKeyboardName)
+        guard connected != isConnected else { return }
+
+        isConnected = connected
+        diagnostics.info("Connection state changed to \(connected ? "connected" : "disconnected")")
+        let snapshot = DiagnosticContext.snapshot(
+            connected: connected,
+            otherBluetoothDevices: latestConnectedDeviceNames
+                .subtracting([configuration.monitoredKeyboardName])
+                .sorted()
+        )
+        diagnostics.info("CONTEXT \(snapshot.logLine)")
+        updateStatus()
     }
 
     private func refreshConnectionState() {
@@ -182,6 +202,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
                     diagnostics.info("CONTEXT \(snapshot.logLine)")
                 }
                 self.latestKnownDevices = result.devices
+                self.latestConnectedDeviceNames = result.connectedDeviceNames
                 self.lastResolvedDevice = result.resolvedDevice
                 self.configuration.updateResolvedAddressIfNeeded(from: result.resolvedDevice)
                 self.isConnected = result.connected

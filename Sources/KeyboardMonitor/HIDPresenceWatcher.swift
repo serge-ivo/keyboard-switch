@@ -62,6 +62,40 @@ final class HIDPresenceWatcher {
         IONotificationPortDestroy(notificationPort)
     }
 
+    /// Whether a HID device with this `Product` string is attached right now.
+    ///
+    /// This is the connection state, read straight from the registry: the
+    /// device is present exactly while the link is up. It replaces querying the
+    /// Bluetooth controller, which is the one thing we must not do on the
+    /// disconnect path — the keyboard is reconnecting at that moment, and
+    /// interrogating the controller mid-handshake is a suspect in the garbled
+    /// first keystrokes after a wake.
+    static func isPresent(productName: String) -> Bool {
+        let target = productName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !target.isEmpty else { return false }
+
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(
+            kIOMainPortDefault,
+            IOServiceMatching(kIOHIDDeviceKey),
+            &iterator
+        ) == KERN_SUCCESS else { return false }
+        defer { IOObjectRelease(iterator) }
+
+        var found = false
+        while case let service = IOIteratorNext(iterator), service != 0 {
+            if !found,
+               let product = IORegistryEntryCreateCFProperty(
+                   service, kIOHIDProductKey as CFString, kCFAllocatorDefault, 0
+               )?.takeRetainedValue() as? String,
+               product == target {
+                found = true
+            }
+            IOObjectRelease(service)
+        }
+        return found
+    }
+
     private static func drain(_ iterator: io_iterator_t) {
         while case let service = IOIteratorNext(iterator), service != 0 {
             IOObjectRelease(service)
