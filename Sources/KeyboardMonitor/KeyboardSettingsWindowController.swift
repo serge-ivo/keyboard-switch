@@ -146,7 +146,7 @@ final class KeyboardSettingsWindowController: NSWindowController {
         devicePopupButton.addItem(withTitle: "Choose detected keyboard")
 
         for device in availableDevices {
-            let title = device.name ?? device.nameOrAddress ?? "Unknown keyboard"
+            let title = device.name
             devicePopupButton.addItem(withTitle: title)
             if let item = devicePopupButton.itemArray.last {
                 item.representedObject = device
@@ -168,14 +168,11 @@ final class KeyboardSettingsWindowController: NSWindowController {
     }
 
     @objc private func selectDetectedDevice() {
-        guard
-            let device = devicePopupButton.selectedItem?.representedObject as? BluetoothDeviceIdentity,
-            let title = device.name ?? device.nameOrAddress
-        else {
+        guard let device = devicePopupButton.selectedItem?.representedObject as? BluetoothDeviceIdentity else {
             return
         }
 
-        keyboardNameField.stringValue = title
+        keyboardNameField.stringValue = device.name
     }
 
     @objc private func refreshFromPopupSelection() {
@@ -193,7 +190,7 @@ final class KeyboardSettingsWindowController: NSWindowController {
     @objc private func saveSelection() {
         let selectedDevice = devicePopupButton.selectedItem?.representedObject as? BluetoothDeviceIdentity
         let selectedName = keyboardNameField.stringValue
-        let selectedDeviceName = selectedDevice?.name ?? selectedDevice?.nameOrAddress
+        let selectedDeviceName = selectedDevice?.name
         let address = selectedDeviceName == selectedName ? selectedDevice?.address : nil
         configuration.saveSelection(name: selectedName, address: address)
         diagnostics.info("Saved monitored keyboard selection: \(configuration.monitoredKeyboardName)")

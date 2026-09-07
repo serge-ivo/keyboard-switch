@@ -4,11 +4,9 @@ import OSLog
 
 @MainActor
 final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
-    private static let refreshInterval: TimeInterval = 0.5
-
     private var statusItem: NSStatusItem!
     private var settingsWindowController: KeyboardSettingsWindowController?
-    private var refreshTimer: Timer?
+    private var presenceWatcher: HIDPresenceWatcher?
     private var isRefreshing = false
     private var isConnected = false
     private var latestKnownDevices: [BluetoothDeviceIdentity] = []
@@ -26,23 +24,18 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
         statusItem.button?.sendAction(on: [.leftMouseUp])
         diagnostics.info("Status item click handler configured")
 
-        refreshTimer = Timer.scheduledTimer(
-            withTimeInterval: Self.refreshInterval,
-            repeats: true
-        ) { [weak self] _ in
+        presenceWatcher = HIDPresenceWatcher { [weak self] in
             Task { @MainActor in
                 self?.refreshConnectionState()
             }
         }
-        refreshTimer?.tolerance = 0.05
-        diagnostics.info("Refresh timer scheduled at \(Self.refreshInterval)s interval")
+        diagnostics.info("HID presence watcher registered")
         refreshConnectionState()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         diagnostics.info("Application terminating")
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        presenceWatcher = nil
     }
 
     @objc private func openLogFile() {
@@ -131,7 +124,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
     }
 
     private var monitoredDeviceDisplayName: String {
-        lastResolvedDevice?.name ?? lastResolvedDevice?.nameOrAddress ?? configuration.monitoredKeyboardName
+        lastResolvedDevice?.name ?? configuration.monitoredKeyboardName
     }
 
     private var settingsSnapshot: KeyboardSettingsSnapshot {
@@ -156,6 +149,11 @@ struct BluetoothProbeResult {
 }
 
 enum BluetoothStatusProbe {
+    /// system_profiler occasionally wedges. Without a bound, `waitUntilExit()`
+    /// would block forever and the caller's in-flight guard would never clear,
+    /// freezing the status dot for the rest of the session.
+    private static let timeout: TimeInterval = 10.0
+
     static func probe(configuredName: String, configuredAddress: String?) -> BluetoothProbeResult {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
@@ -176,8 +174,18 @@ enum BluetoothStatusProbe {
             )
         }
 
+        // Terminating the process closes its stdout, which releases the read
+        // below and lets waitUntilExit() return.
+        let watchdog = DispatchWorkItem {
+            if task.isRunning {
+                task.terminate()
+            }
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: watchdog)
+
         let data = stdout.fileHandleForReading.readDataToEndOfFile()
         task.waitUntilExit()
+        watchdog.cancel()
 
         guard
             task.terminationStatus == 0,
@@ -241,10 +249,29 @@ final class KeyboardSwitchDiagnostics: @unchecked Sendable {
         NSWorkspace.shared.activateFileViewerSelecting([fileURL])
     }
 
+    /// At the cap the current log becomes `.1`, replacing any previous one, and
+    /// logging restarts in a fresh file — so at most two of these are ever on
+    /// disk. Connect/disconnect history is worth keeping, but not unboundedly.
+    private static let maxLogBytes = 1_000_000
+
+    private static func rotateIfNeeded(at fileURL: URL) {
+        let manager = FileManager.default
+        guard
+            let attributes = try? manager.attributesOfItem(atPath: fileURL.path),
+            let size = attributes[.size] as? Int,
+            size > maxLogBytes
+        else { return }
+
+        let rotated = fileURL.appendingPathExtension("1")
+        try? manager.removeItem(at: rotated)
+        try? manager.moveItem(at: fileURL, to: rotated)
+    }
+
     private func append(level: String, message: String) {
         let line = "\(dateFormatter.string(from: Date())) [\(level)] \(message)\n"
         queue.async { [fileURL] in
             let data = Data(line.utf8)
+            KeyboardSwitchDiagnostics.rotateIfNeeded(at: fileURL)
             if FileManager.default.fileExists(atPath: fileURL.path) {
                 if
                     let handle = try? FileHandle(forWritingTo: fileURL),

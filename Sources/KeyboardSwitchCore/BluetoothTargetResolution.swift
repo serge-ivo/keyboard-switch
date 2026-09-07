@@ -1,13 +1,13 @@
 import Foundation
 
 public struct BluetoothDeviceIdentity: Equatable, Sendable {
-    public let name: String?
-    public let nameOrAddress: String?
+    /// The device's header line in `system_profiler` output — its Bluetooth
+    /// name, or its address when the device reports no name.
+    public let name: String
     public let address: String?
 
-    public init(name: String?, nameOrAddress: String?, address: String?) {
+    public init(name: String, address: String?) {
         self.name = name
-        self.nameOrAddress = nameOrAddress
         self.address = address
     }
 }
@@ -68,6 +68,6 @@ public enum BluetoothTargetResolution {
         _ configuredName: String,
         candidate: BluetoothDeviceIdentity
     ) -> Bool {
-        candidate.name == configuredName || candidate.nameOrAddress == configuredName
+        candidate.name == configuredName
     }
 }

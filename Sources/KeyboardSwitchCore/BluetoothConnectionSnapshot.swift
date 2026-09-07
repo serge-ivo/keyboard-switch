@@ -17,11 +17,8 @@ public enum BluetoothConnectionSnapshot {
             configuredName: configuredName,
             resolvedAddress: resolvedAddress,
             in: devices
-        ) {
-            let candidateNames = [resolved.name, resolved.nameOrAddress].compactMap { $0 }
-            if candidateNames.contains(where: connectedNames.contains) {
-                return true
-            }
+        ), connectedNames.contains(resolved.name) {
+            return true
         }
 
         return connectedNames.contains(configuredName)
@@ -47,7 +44,10 @@ public enum BluetoothConnectionSnapshot {
 
             guard inConnectedSection else { continue }
 
-            if trimmed.hasSuffix(":") {
+            // A device header is a bare `Name:` line. A field whose value is
+            // empty (`Firmware Version:`) looks identical, so exclude the
+            // known field names.
+            if trimmed.hasSuffix(":"), !BluetoothDeviceCatalog.isFieldLine(trimmed) {
                 let name = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
                 if !name.isEmpty {
                     connectedNames.insert(name)

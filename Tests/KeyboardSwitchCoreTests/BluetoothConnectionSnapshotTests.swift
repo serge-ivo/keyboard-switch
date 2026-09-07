@@ -43,4 +43,20 @@ final class BluetoothConnectionSnapshotTests: XCTestCase {
 
         XCTAssertFalse(BluetoothConnectionSnapshot.isDeviceConnected(named: "MK550KB", in: output))
     }
+
+    func testEmptyValuedFieldIsNotTreatedAsADevice() {
+        let output = """
+        Bluetooth:
+
+              Connected:
+                  MK550KB:
+                      Address: D6:3D:1F:F6:35:35
+                      Firmware Version:
+                      Battery Level:
+        """
+
+        let names = BluetoothConnectionSnapshot.connectedDeviceNames(in: output)
+
+        XCTAssertEqual(names, ["MK550KB"])
+    }
 }

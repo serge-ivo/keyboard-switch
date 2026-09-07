@@ -18,12 +18,7 @@ public enum BluetoothDeviceCatalog {
 
             guard !nameOrAddress.isEmpty, seenKeys.insert(key).inserted else { continue }
 
-            let device = BluetoothDeviceIdentity(
-                name: nameOrAddress,
-                nameOrAddress: nameOrAddress,
-                address: address
-            )
-            devices.append(device)
+            devices.append(BluetoothDeviceIdentity(name: nameOrAddress, address: address))
         }
 
         return devices
@@ -73,7 +68,7 @@ public enum BluetoothDeviceCatalog {
         return nil
     }
 
-    private static func isFieldLine(_ trimmedLine: String) -> Bool {
+    static func isFieldLine(_ trimmedLine: String) -> Bool {
         let fieldPrefixes = [
             "Address:",
             "Major Type:",

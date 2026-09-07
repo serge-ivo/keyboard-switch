@@ -4,8 +4,8 @@ import XCTest
 final class BluetoothTargetResolutionTests: XCTestCase {
     func testBestMatchFindsDeviceByExactName() {
         let devices = [
-            BluetoothDeviceIdentity(name: "Keyboard K380", nameOrAddress: "Keyboard K380", address: "34-88-5d-fb-51-57"),
-            BluetoothDeviceIdentity(name: "MK550KB", nameOrAddress: "MK550KB", address: "d6-3d-1f-f6-35-35")
+            BluetoothDeviceIdentity(name: "Keyboard K380", address: "34-88-5d-fb-51-57"),
+            BluetoothDeviceIdentity(name: "MK550KB", address: "d6-3d-1f-f6-35-35")
         ]
 
         let match = BluetoothTargetResolution.bestMatch(named: "MK550KB", in: devices)
@@ -15,7 +15,7 @@ final class BluetoothTargetResolutionTests: XCTestCase {
 
     func testBestMatchDoesNotAcceptPrefixName() {
         let devices = [
-            BluetoothDeviceIdentity(name: "MK550KB2", nameOrAddress: "MK550KB2", address: "00-00-00-00-00-00")
+            BluetoothDeviceIdentity(name: "MK550KB2", address: "00-00-00-00-00-00")
         ]
 
         let match = BluetoothTargetResolution.bestMatch(named: "MK550KB", in: devices)
@@ -26,7 +26,6 @@ final class BluetoothTargetResolutionTests: XCTestCase {
     func testMatchesTargetByNormalizedAddress() {
         let candidate = BluetoothDeviceIdentity(
             name: "Renamed Keyboard",
-            nameOrAddress: "Renamed Keyboard",
             address: "D6-3D-1F-F6-35-35"
         )
 
@@ -41,8 +40,7 @@ final class BluetoothTargetResolutionTests: XCTestCase {
 
     func testMatchesTargetFallsBackToConfiguredNameWhenAddressUnknown() {
         let candidate = BluetoothDeviceIdentity(
-            name: nil,
-            nameOrAddress: "MK550KB",
+            name: "MK550KB",
             address: nil
         )
 
@@ -57,8 +55,8 @@ final class BluetoothTargetResolutionTests: XCTestCase {
 
     func testResolvePrefersAddressMatch() {
         let devices = [
-            BluetoothDeviceIdentity(name: "Renamed Keyboard", nameOrAddress: "Renamed Keyboard", address: "D6-3D-1F-F6-35-35"),
-            BluetoothDeviceIdentity(name: "MK550KB", nameOrAddress: "MK550KB", address: "00-00-00-00-00-00")
+            BluetoothDeviceIdentity(name: "Renamed Keyboard", address: "D6-3D-1F-F6-35-35"),
+            BluetoothDeviceIdentity(name: "MK550KB", address: "00-00-00-00-00-00")
         ]
 
         let match = BluetoothTargetResolution.resolve(
