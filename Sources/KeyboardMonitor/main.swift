@@ -7,7 +7,9 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var settingsWindowController: KeyboardSettingsWindowController?
     private var presenceWatcher: HIDPresenceWatcher?
+    private var pendingRefreshWork: DispatchWorkItem?
     private var isRefreshing = false
+    private var needsAnotherRefresh = false
     private var isConnected = false
     private var latestKnownDevices: [BluetoothDeviceIdentity] = []
     private var lastResolvedDevice: BluetoothDeviceIdentity?
@@ -26,7 +28,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
 
         presenceWatcher = HIDPresenceWatcher { [weak self] in
             Task { @MainActor in
-                self?.refreshConnectionState()
+                self?.scheduleRefresh()
             }
         }
         diagnostics.info("HID presence watcher registered")
@@ -35,6 +37,7 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         diagnostics.info("Application terminating")
+        pendingRefreshWork?.cancel()
         presenceWatcher = nil
     }
 
@@ -93,8 +96,27 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
         button.toolTip = presentation.toolTip
     }
 
+    /// Coalesces a burst of notifications into one probe. A single device
+    /// registers several HID interfaces, and the Bluetooth data trails the
+    /// registry slightly, so probing on the first notification can read a state
+    /// that is about to change.
+    private func scheduleRefresh() {
+        pendingRefreshWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.refreshConnectionState()
+        }
+        pendingRefreshWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
+    }
+
     private func refreshConnectionState() {
-        guard !isRefreshing else { return }
+        // Without the timer there is no later retry, so a refresh that arrives
+        // mid-probe has to be remembered rather than dropped — otherwise the
+        // dot keeps whatever the in-flight probe happened to see.
+        guard !isRefreshing else {
+            needsAnotherRefresh = true
+            return
+        }
         isRefreshing = true
 
         let configuredName = configuration.monitoredKeyboardName
@@ -119,6 +141,10 @@ final class KeyboardSwitchApp: NSObject, NSApplicationDelegate {
                 self.configuration.updateResolvedAddressIfNeeded(from: result.resolvedDevice)
                 self.isConnected = result.connected
                 self.updateStatus()
+                if self.needsAnotherRefresh {
+                    self.needsAnotherRefresh = false
+                    self.scheduleRefresh()
+                }
             }
         }
     }
